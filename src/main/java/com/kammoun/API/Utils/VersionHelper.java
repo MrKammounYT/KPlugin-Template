@@ -11,11 +11,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.event.inventory.InventoryType;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Class for detecting server version.
- *
- * @author Matt from triumph-gui
- */
+
 public final class VersionHelper {
 
     private static final String PACKAGE_NAME = Bukkit.getServer().getClass().getPackage().getName();

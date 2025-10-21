@@ -59,7 +59,7 @@ public abstract class KConfigLoader {
     }
 
     public String getFormattedString(String path) {
-        return ChatFormater.Color(getString(path));
+        return ChatFormater.color(getString(path));
     }
 
     public int getInt(String path) {
@@ -76,7 +76,7 @@ public abstract class KConfigLoader {
 
     public List<String> getFormattedStringList(String path) {
         return getStringList(path).stream()
-                .map(ChatFormater::Color)
+                .map(ChatFormater::color)
                 .collect(Collectors.toList());
     }
 }

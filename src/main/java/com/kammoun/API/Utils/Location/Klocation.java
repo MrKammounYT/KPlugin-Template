@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -32,8 +31,24 @@ public class Klocation {
         this.yaw = yaw;
         this.pitch = pitch;
     }
+    public Klocation(Location location){
+        this.vector = new Vector(location.getX(), location.getY(), location.getZ());
+        this.WorldName = location.getWorld().getName();
+        this.yaw = location.getYaw();
+        this.pitch = location.getPitch();
+    }
 
 
+
+    public double getX(){
+        return vector.getX();
+    }
+    public double getY(){
+        return vector.getY();
+    }
+    public double getZ(){
+        return vector.getZ();
+    }
 
 
     @Nullable
@@ -50,9 +65,9 @@ public class Klocation {
 
 
     public static Klocation getLocationFromConfig(@NotNull ConfigurationSection section){
-        int x = section.getInt("x",0);
-        int y = section.getInt("y",0);
-        int z = section.getInt("z",0);
+        double x = section.getDouble("x", 0.0);
+        double y = section.getDouble("y", 0.0);
+        double z = section.getDouble("z", 0.0);
         float yaw = (float) section.getDouble("yaw");
         float pitch = (float) section.getDouble("pitch");
         return new Klocation(new Vector(x, y, z), section.getString("world","world"), yaw, pitch);

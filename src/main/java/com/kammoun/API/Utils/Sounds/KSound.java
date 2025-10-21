@@ -1,6 +1,5 @@
 package com.kammoun.API.Utils.Sounds;
 
-
 import lombok.Getter;
 import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
@@ -32,13 +31,14 @@ public class KSound {
     }
 
 
+
     @Nullable
     public static KSound getSoundFromConfig(ConfigurationSection section){
-        if(section == null) return null;
+        if(section == null) return new KSound(Sound.ENTITY_VILLAGER_NO,0,0);
         try {
-            Sound sound = Sound.valueOf(section.getString("sound","NULL").toUpperCase());
-            float pitch = Float.parseFloat(section.getString("pitch","1.0"));
-            float volume = Float.parseFloat(section.getString("volume","1.0"));
+            Sound sound = Sound.valueOf(section.getString("sound","ENTITY_VILLAGER_NO").toUpperCase());
+            float pitch = Float.parseFloat(section.getString("pitch","1"));
+            float volume = Float.parseFloat(section.getString("volume","1"));
             return new KSound(sound, pitch, volume);
         } catch (Exception e) {
             e.printStackTrace();

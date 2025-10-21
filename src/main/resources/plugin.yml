@@ -1,4 +1,4 @@
 name: KammounPluginTemplate
 version: '1.0.0'
-main: com.kammoun.Main
+main: "YOUR MAIN CLASS"
 api-version: '1.21'

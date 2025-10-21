@@ -10,6 +10,7 @@ import org.bukkit.Material;
 import org.bukkit.block.banner.Pattern;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
@@ -21,22 +22,40 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-@Getter
 @Setter
 public class KItem {
 
+
+    @Getter
+    public enum CommandType {
+        PLAYER,
+        CONSOLE,
+        BUNGEE;
+
+        public static Optional<CommandType> fromString(String text) {
+            if (text == null) return Optional.empty();
+            try {
+                return Optional.of(valueOf(text.toUpperCase()));
+            } catch (IllegalArgumentException e) {
+                return Optional.empty();
+            }
+        }
+    }
+
     private final ItemStack itemStack;
-    private ItemMeta meta;
+    @Getter private ItemMeta meta;
     private final Map<String, Object> nbtTags = new HashMap<>();
     private final JavaPlugin plugin;
 
-    // Optional menu-related properties
-    private Integer slot;
-    private double price = 0;
-    private List<String> clickCommands = new ArrayList<>();
+    @Getter private Integer slot;
+    @Getter private double price = 0;
+    @Getter private List<String> clickCommands = new ArrayList<>();
+
+    @Getter private String permission;
+    @Getter private CommandType commandType = CommandType.PLAYER;
 
     public KItem(Material material) {
-        this(null, material);
+        this(null, material);//replace this with your plugin instance
     }
 
     public KItem(JavaPlugin plugin, Material material) {
@@ -55,6 +74,12 @@ public class KItem {
         this.meta = this.itemStack.getItemMeta();
     }
 
+
+    public boolean hasPermission(Player player) {
+        if(permission == null)return true;
+        if(permission.isEmpty())return true;
+        return player.hasPermission(permission);
+    }
     public KItem name(String name) {
         if (name != null) {
             meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
@@ -73,6 +98,16 @@ public class KItem {
                     .map(line -> ChatColor.translateAlternateColorCodes('&', line))
                     .collect(Collectors.toList()));
         }
+        return this;
+    }
+
+    public KItem permission(String permission) {
+        this.permission = permission;
+        return this;
+    }
+
+    public KItem commandType(CommandType commandType) {
+        this.commandType = commandType;
         return this;
     }
 
@@ -133,7 +168,7 @@ public class KItem {
         return this;
     }
 
-    public KItem skullOwner(String ownerName) {
+    public KItem skullOwner(String ownerName,JavaPlugin plugin) {
         if (plugin != null && meta instanceof SkullMeta && ownerName != null) {
             String currentName = meta.hasDisplayName() ? meta.getDisplayName() : null;
             List<String> currentLore = meta.hasLore() ? meta.getLore() : null;
@@ -155,8 +190,8 @@ public class KItem {
             String currentName = meta.hasDisplayName() ? meta.getDisplayName() : null;
             List<String> currentLore = meta.hasLore() ? meta.getLore() : null;
 
-            ItemStack tempSkull = SkullHandler.getSkullByBase64EncodedTextureUrl( plugin, textureValue);
-            if (tempSkull != null && tempSkull.hasItemMeta()) {
+            ItemStack tempSkull = SkullHandler.getSkullByBase64EncodedTextureUrl(plugin, textureValue);
+            if (tempSkull != null && tempSkull.hasItemMeta()) {  // Added null check
                 this.meta = tempSkull.getItemMeta();
                 if (currentName != null) this.meta.setDisplayName(currentName);
                 if (currentLore != null) this.meta.setLore(currentLore);
@@ -164,7 +199,7 @@ public class KItem {
         } else if (plugin == null) {
             Bukkit.getLogger().warning("[KItem] Cannot set texture without a plugin instance.");
         }
-        return this;
+        return this;  // THIS WAS MISSING!
     }
 
     public KItem armorColor(Color color) {
@@ -212,7 +247,8 @@ public class KItem {
         return this;
     }
 
-    public ItemStack build() {
+
+    public ItemStack getItemStack() {
         itemStack.setItemMeta(meta);
 
         if (!nbtTags.isEmpty()) {
@@ -250,16 +286,21 @@ public class KItem {
             return null;
         }
 
-       KItem builder = new KItem(material);
+        KItem builder = new KItem(material);
 
-        // --- Load Optional Menu Properties ---
         if (section.contains("slot")) builder.setSlot(section.getInt("slot"));
         if (section.contains("price")) builder.price(section.getDouble("price"));
         if (section.contains("commands")) builder.commands(section.getStringList("commands"));
 
-        // --- Load ItemStack Properties ---
+        if (section.contains("permission")) builder.permission(section.getString("permission"));
+        if (section.contains("CommandType")) {
+            CommandType.fromString(section.getString("CommandType"))
+                    .ifPresent(builder::commandType);
+        }
+
         builder.amount(section.getInt("amount", 1));
         if (section.contains("name")) builder.name(section.getString("name"));
+        if (section.contains("displayName")) builder.name(section.getString("displayName"));
         if (section.contains("lore")) builder.lore(section.getStringList("lore"));
         if (section.contains("damage")) builder.damage(section.getInt("damage"));
         if (section.contains("custom-model-data")) builder.modelData(section.getInt("custom-model-data"));
@@ -296,7 +337,7 @@ public class KItem {
 
         if (material == Material.PLAYER_HEAD) {
             if (section.contains("texture")) builder.texture(section.getString("texture"));
-            else if (section.contains("skull-owner")) builder.skullOwner(section.getString("skull-owner"));
+            else if (section.contains("skull-owner")) builder.skullOwner(section.getString("skull-owner"), null);
         }
 
         if (material.name().startsWith("LEATHER_") && section.contains("color")) {
@@ -358,10 +399,11 @@ public class KItem {
                 }
             });
         }
-
         return builder;
     }
+
+
+
+
+
 }
-
-
-

@@ -10,7 +10,7 @@ public class ChatFormater {
         return HEX_COLOR_CODES;
     }
 
-    public static String Color(String toColor){
+    public static String color(String toColor){
         if(toColor == null || toColor.isEmpty())return toColor;
         return ChatColor.translateAlternateColorCodes('&', HEX_COLOR_CODES.FormatHex(toColor));
     }
