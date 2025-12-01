@@ -1,5 +1,6 @@
 package com.kammoun.API.Commands;
 
+import lombok.Getter;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+@Getter
 public abstract class KCommand implements CommandExecutor, TabCompleter {
 
     private final String commandName;

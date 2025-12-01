@@ -1,6 +1,7 @@
 package com.kammoun.API.Utils.InventoryHolder;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,7 @@ public class MultiPageHolder implements InventoryHolder {
 
 
 
+    @Setter
     private Inventory inventory;
     @Override
     public @NotNull Inventory getInventory() {

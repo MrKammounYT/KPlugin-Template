@@ -46,9 +46,8 @@ public class PlaceHolderHelper {
             }
             meta.setDisplayName(name);
         }
-
+        List<String> lore = meta.getLore();
         if (meta.hasLore()) {
-            List<String> lore = meta.getLore();
             List<String> newLore = new ArrayList<>();
             for (String line : lore) {
                 String updatedLine = line;

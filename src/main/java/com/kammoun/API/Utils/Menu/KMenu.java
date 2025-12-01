@@ -44,6 +44,7 @@ public abstract class KMenu extends KConfigLoader implements InventoryHolder {
         fillerItem = KItem.fromConfig(config.getConfigurationSection("Navigation.Filler-Item"));
     }
 
+    
     public abstract void handleClick(InventoryClickEvent event);
 
     protected abstract void setMenuItems(String... placeholders);

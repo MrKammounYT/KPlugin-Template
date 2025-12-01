@@ -7,7 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public abstract class KDataBaseManager {
+
+public abstract class KDBManager {
 
 
     @Getter
@@ -18,7 +19,7 @@ public abstract class KDataBaseManager {
     protected String dbHost;
     protected String dbPort;
 
-    public KDataBaseManager(FileConfiguration config) {
+    public KDBManager(FileConfiguration config) {
         loadDatabaseInfo(config);
     }
 
@@ -30,8 +31,11 @@ public abstract class KDataBaseManager {
     public boolean isConnected(){
         return connection != null;
     }
+
+
+
     public PreparedStatement getPreparedStatement(String sql) throws SQLException {
-        if(connection == null)return null;
+        if(connection == null || sql == null || sql.isEmpty())return null;
         return connection.prepareStatement(sql);
     }
 

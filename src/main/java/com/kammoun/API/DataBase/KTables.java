@@ -1,10 +1,10 @@
 package com.kammoun.API.DataBase;
 
-public abstract class KTables {
+public interface KTables {
 
-    protected abstract void createTable();
+    void createTable();
 
-    protected abstract void dropTable();
+    void dropTable();
 
 
 }
