@@ -1,7 +1,5 @@
 package com.kammoun.api.skin;
 
-
-import bg.pikz.shards.library.util.SchedulerUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -72,7 +70,7 @@ public final class SkinService {
     }
 
     public void cacheOnlinePlayer(@NotNull Player player) {
-        SchedulerUtil.runAsync(() -> {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             String texture = extractTextureFromPlayerProfile(player);
             if (texture != null) {
                 String signature = MojangUtils.getSignaturePaper(player);

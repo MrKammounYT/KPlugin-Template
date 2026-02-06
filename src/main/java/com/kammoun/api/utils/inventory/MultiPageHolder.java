@@ -19,8 +19,6 @@ public class MultiPageHolder implements InventoryHolder {
         this.maxPage = maxPage;
     }
 
-
-
     @Setter
     private Inventory inventory;
     @Override

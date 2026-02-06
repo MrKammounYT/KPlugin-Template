@@ -1,8 +1,9 @@
 plugins {
     id 'java'
+    id 'java-library'
+    id 'maven-publish'
     id("xyz.jpenilla.run-paper") version "2.3.1"
     id "com.gradleup.shadow" version "9.0.0-beta4"
-
 }
 
 group = 'com.kammoun'
@@ -30,8 +31,10 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
 
 
-    implementation("de.tr7zw:item-nbt-api:2.15.2")
+    implementation("de.tr7zw:item-nbt-api:2.15.5")
     implementation 'com.zaxxer:HikariCP:5.0.1'
+    implementation("io.netty:netty-all:4.2.10.Final")
+
 }
 
 tasks {
@@ -49,6 +52,8 @@ java {
     if (JavaVersion.current() < javaVersion) {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
+    withSourcesJar()
+    withJavadocJar()
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -73,4 +78,22 @@ shadowJar {
     archiveClassifier.set('all')
     mergeServiceFiles()
     //destinationDirectory.set(file(YOUR_OUTPUT_LOCATION))
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'com.kammoun'
+            artifactId = 'kammoun-api'
+            version = project.version
+
+            from components.java
+
+            pom {
+                name = 'Kammoun API'
+                description = 'A comprehensive utility API for Minecraft/Bukkit plugin development'
+                url = 'https://github.com/YOUR_USERNAME/KammounPluginTemplate'
+            }
+        }
+    }
 }

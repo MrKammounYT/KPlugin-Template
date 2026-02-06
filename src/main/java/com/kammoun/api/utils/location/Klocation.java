@@ -40,17 +40,6 @@ public class Klocation {
 
 
 
-    public double getX(){
-        return vector.getX();
-    }
-    public double getY(){
-        return vector.getY();
-    }
-    public double getZ(){
-        return vector.getZ();
-    }
-
-
     @Nullable
     public Location getLocation(){
         if(Bukkit.getWorld(worldName) == null){
