@@ -30,9 +30,51 @@ A comprehensive Bukkit/Spigot plugin development API providing command handling,
 
 ### Installation
 
-1. Add the API as a dependency to your plugin
-2. Set your main class in `plugin.yml`
-3. Extend or use the provided utility classes
+Add the API as a dependency to your plugin using Gradle or Maven:
+
+**Gradle (Groovy)**
+```gradle
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    implementation 'com.github.MrKammounYT:KPlugin-Template:-SNAPSHOT'
+}
+```
+
+**Gradle (Kotlin DSL)**
+```kotlin
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+}
+
+dependencies {
+    implementation("com.github.MrKammounYT:KPlugin-Template:-SNAPSHOT")
+}
+```
+
+**Maven**
+```xml
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
+
+<dependencies>
+    <dependency>
+        <groupId>com.github.MrKammounYT</groupId>
+        <artifactId>KPlugin-Template</artifactId>
+        <version>-SNAPSHOT</version>
+    </dependency>
+</dependencies>
+```
+
+> **Note:** Replace `-SNAPSHOT` with a specific release tag (e.g., `1.0.0`) for production use.
 
 ### Basic Setup
 

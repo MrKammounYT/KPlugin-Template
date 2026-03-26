@@ -20,229 +20,150 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.UUID;
 
-public class SkullHandler {
+public final class SkullHandler {
 
     private static final Gson GSON = new Gson();
 
-    /**
-     * Helper method to get the encoded bytes for a full MC Texture
-     *
-     * @param url the url of the texture
-     * @return fully encoded texture url
-     */
+    private SkullHandler() {}
+
     @NotNull
-    public static String getEncoded(@NotNull final String url) {
-        final byte[] encodedData = Base64.getEncoder().encode(String
-                .format("{textures:{SKIN:{url:\"%s\"}}}", "https://textures.minecraft.net/texture/" + url)
-                .getBytes());
-        return new String(encodedData);
+    public static String encodeTextureUrl(@NotNull String url) {
+        String json = "{\"textures\":{\"SKIN\":{\"url\":\"" + url + "\"}}}";
+        return Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
     }
 
+    @Nullable
+    public static String decodeTextureUrl(@NotNull String base64Texture) {
+        String decoded = new String(Base64.getDecoder().decode(base64Texture));
+        JsonObject object = GSON.fromJson(decoded, JsonObject.class);
 
-    private static ItemStack getHead(){
+        JsonElement textures = object.get("textures");
+        if (textures == null) return null;
+
+        JsonElement skin = textures.getAsJsonObject().get("SKIN");
+        if (skin == null) return null;
+
+        JsonElement url = skin.getAsJsonObject().get("url");
+        return url == null ? null : url.getAsString();
+    }
+
+    @NotNull
+    private static ItemStack getBaseHead() {
         if (!VersionHelper.IS_ITEM_LEGACY) {
             return new ItemStack(Material.PLAYER_HEAD, 1);
-        } else {
-            return new ItemStack(Material.valueOf("SKULL_ITEM"), 1, (short) 3);
         }
+        return new ItemStack(Material.valueOf("SKULL_ITEM"), 1, (short) 3);
     }
 
-
     @NotNull
-    public static ItemStack getSkullByBase64EncodedTextureUrl(@NotNull final JavaPlugin plugin, @NotNull final String base64Url) {
+    public static ItemStack getSkullByTexture(@NotNull JavaPlugin plugin, @NotNull String base64Url) {
+        ItemStack head = getBaseHead().clone();
+        if (base64Url.isEmpty()) return head;
 
-        final ItemStack head = getHead().clone();
-        if (base64Url.isEmpty()) {
-            return head;
-        }
-
-        final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        if (headMeta == null) {
-            return head;
-        }
+        SkullMeta meta = (SkullMeta) head.getItemMeta();
+        if (meta == null) return head;
 
         if (VersionHelper.HAS_PLAYER_PROFILES) {
-            final PlayerProfile profile = getPlayerProfile(plugin, base64Url);
-            headMeta.setOwnerProfile(profile);
-            head.setItemMeta(headMeta);
+            meta.setOwnerProfile(buildPlayerProfile(plugin, base64Url));
+            head.setItemMeta(meta);
             return head;
         }
 
-        final GameProfile profile = getGameProfile(base64Url);
-        final Field profileField;
         try {
-            profileField = headMeta.getClass().getDeclaredField("profile");
+            Field profileField = meta.getClass().getDeclaredField("profile");
             profileField.setAccessible(true);
-            profileField.set(headMeta, profile);
-        } catch (final NoSuchFieldException | IllegalArgumentException | IllegalAccessException exception) {
-            plugin.getLogger().warning(
-                    "Failed to get head item from base64 texture url:"+
-                    exception.getMessage()
-            );
+            profileField.set(meta, buildGameProfile(base64Url));
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            plugin.getLogger().warning("[SkullHandler] Failed to set skull texture: " + e.getMessage());
         }
-        head.setItemMeta(headMeta);
+
+        head.setItemMeta(meta);
         return head;
     }
 
-    public static String getTextureFromSkull(final JavaPlugin plugin, ItemStack item) {
-        if (!(item.getItemMeta() instanceof SkullMeta)) return null;
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
+    @NotNull
+    public static ItemStack getSkullByName(@NotNull String playerName) {
+        ItemStack head = getBaseHead().clone();
+        if (playerName.isEmpty()) return head;
+
+        SkullMeta meta = (SkullMeta) head.getItemMeta();
+        if (meta == null) return head;
+
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
+
+        if (VersionHelper.HAS_PLAYER_PROFILES && offlinePlayer.getPlayerProfile().getTextures().isEmpty()) {
+            meta.setOwnerProfile(offlinePlayer.getPlayerProfile().update().join());
+        } else if (!VersionHelper.IS_SKULL_OWNER_LEGACY) {
+            meta.setOwningPlayer(offlinePlayer);
+        } else {
+            meta.setOwner(offlinePlayer.getName());
+        }
+
+        head.setItemMeta(meta);
+        return head;
+    }
+
+    @Nullable
+    public static String getTextureFromSkull(@NotNull JavaPlugin plugin, @NotNull ItemStack item) {
+        if (!(item.getItemMeta() instanceof SkullMeta meta)) return null;
 
         if (VersionHelper.HAS_PLAYER_PROFILES) {
             PlayerProfile profile = meta.getOwnerProfile();
             if (profile == null) return null;
-
             URL url = profile.getTextures().getSkin();
-            if (url == null) return null;
-
-            return url.toString().substring("https://textures.minecraft.net/texture/".length() - 1);
+            return url == null ? null : url.toString();
         }
 
-        GameProfile profile;
         try {
-            final Field profileField = meta.getClass().getDeclaredField("profile");
+            Field profileField = meta.getClass().getDeclaredField("profile");
             profileField.setAccessible(true);
-            profile = (GameProfile) profileField.get(meta);
-        } catch (final NoSuchFieldException | IllegalArgumentException | IllegalAccessException exception) {
-            plugin.getLogger().warning(
-                    "Failed to get base64 texture url from head item : "+exception.getMessage()
-            );
-            return null;
-        }
-
-        for (Property property : profile.getProperties().get("textures")) {
-            if (property.getName().equals("textures")) {
-                return decodeSkinUrl(property.getValue());
+            GameProfile gp = (GameProfile) profileField.get(meta);
+            if (gp == null) return null;
+            for (Property property : gp.getProperties().get("textures")) {
+                if ("textures".equals(property.getName())) {
+                    return decodeTextureUrl(property.getValue());
+                }
             }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            plugin.getLogger().warning("[SkullHandler] Failed to get skull texture: " + e.getMessage());
         }
         return null;
     }
 
-
-    /**
-     * Get the skull from a player name
-     *
-     * @param playerName the player name to use
-     * @return skull
-     */
-    @NotNull
-    public static ItemStack getSkullByName(@NotNull final String playerName) {
-        final ItemStack head = getHead().clone();
-        if (playerName.isEmpty()) {
-            return head;
-        }
-
-        final SkullMeta headMeta = (SkullMeta) head.getItemMeta();
-        if (headMeta == null) {
-            return head;
-        }
-
-        final OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
-
-        if (VersionHelper.HAS_PLAYER_PROFILES && offlinePlayer.getPlayerProfile().getTextures().isEmpty()) {
-            // updates the Player Profile and populates textures for offline players - for some reason this doesn't populate when getting the Profile first time
-            headMeta.setOwnerProfile(offlinePlayer.getPlayerProfile().update().join());
-        } else if (!VersionHelper.IS_SKULL_OWNER_LEGACY) {
-            headMeta.setOwningPlayer(offlinePlayer);
-        } else {
-            headMeta.setOwner(offlinePlayer.getName());
-        }
-
-        head.setItemMeta(headMeta);
-        return head;
-    }
-
-    public static String getSkullOwner(ItemStack skull) {
-        if (skull == null || !(skull.getItemMeta() instanceof SkullMeta)) return null;
-        SkullMeta meta = (SkullMeta) skull.getItemMeta();
+    @Nullable
+    public static String getSkullOwner(@NotNull ItemStack skull) {
+        if (!(skull.getItemMeta() instanceof SkullMeta meta)) return null;
 
         if (!VersionHelper.IS_SKULL_OWNER_LEGACY) {
-            if (meta.getOwningPlayer() == null) return null;
-            return meta.getOwningPlayer().getName();
+            return meta.getOwningPlayer() == null ? null : meta.getOwningPlayer().getName();
         }
-
         return meta.getOwner();
     }
 
-    /**
-     * Create a game profile object
-     *
-     * @param base64Url the base64 encoded texture url to use
-     * @return game profile
-     */
     @NotNull
-    private static GameProfile getGameProfile(@NotNull final String base64Url) {
+    private static GameProfile buildGameProfile(@NotNull String base64Url) {
         GameProfile profile = new GameProfile(UUID.randomUUID(), "");
         profile.getProperties().put("textures", new Property("textures", base64Url));
         return profile;
     }
 
-    /**
-     * Create a player profile object
-     * Player profile was introduced in 1.18.1+
-     *
-     * @param base64Url the base64 encoded texture URL to use
-     * @return player profile
-     */
     @NotNull
-    private static PlayerProfile getPlayerProfile(@NotNull final JavaPlugin plugin, @NotNull final String base64Url) {
-        final PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID());
+    private static PlayerProfile buildPlayerProfile(@NotNull JavaPlugin plugin, @NotNull String base64Url) {
+        PlayerProfile profile = Bukkit.createPlayerProfile(UUID.randomUUID());
+        String url = decodeTextureUrl(base64Url);
+        if (url == null) return profile;
 
-        final String decodedBase64 = decodeSkinUrl(base64Url);
-        if (decodedBase64 == null) {
-            return profile;
-        }
-
-        final PlayerTextures textures = profile.getTextures();
-
+        PlayerTextures textures = profile.getTextures();
         try {
-            textures.setSkin(new URL(decodedBase64));
-        } catch (final MalformedURLException exception) {
-            plugin.getLogger().warning("Something went horribly wrong trying to create basehead URL:"+ exception.getMessage());
+            textures.setSkin(new URL(url));
+        } catch (MalformedURLException e) {
+            plugin.getLogger().warning("[SkullHandler] Malformed skin URL: " + e.getMessage());
         }
-
         profile.setTextures(textures);
         return profile;
     }
-
-    /**
-     * Decode a base64 string and extract the url of the skin. Example:
-     * <br>
-     * - Base64: {@code eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvZGNlYjE3MDhkNTQwNGVmMzI2MTAzZTdiNjA1NTljOTE3OGYzZGNlNzI5MDA3YWM5YTBiNDk4YmRlYmU0NjEwNyJ9fX0=}
-     * <br>
-     * - JSON: {@code {"textures":{"SKIN":{"url":"http://textures.minecraft.net/texture/dceb1708d5404ef326103e7b60559c9178f3dce729007ac9a0b498bdebe46107"}}}}
-     * <br>
-     * - Result: {@code http://textures.minecraft.net/texture/dceb1708d5404ef326103e7b60559c9178f3dce729007ac9a0b498bdebe46107}
-     * <br>
-     * Credit: <a href="https://github.com/TriumphTeam/triumph-gui/pull/104/files#diff-ef6f3ffdac8e5f722e2e9121be8003b26d087c2d7871ca43d31b65c7565b0c1fR92">iGabyTM</a>
-     *
-     * @param base64Texture the texture
-     * @return the url of the texture if found, otherwise {@code null}
-     */
-    @Nullable
-    public static String decodeSkinUrl(@NotNull final String base64Texture) {
-        final String decoded = new String(Base64.getDecoder().decode(base64Texture));
-        final JsonObject object = GSON.fromJson(decoded, JsonObject.class);
-
-        final JsonElement textures = object.get("textures");
-
-        if (textures == null) {
-            return null;
-        }
-
-        final JsonElement skin = textures.getAsJsonObject().get("SKIN");
-
-        if (skin == null) {
-            return null;
-        }
-
-        final JsonElement url = skin.getAsJsonObject().get("url");
-        return url == null ? null : url.getAsString();
-    }
-
-
 }
-

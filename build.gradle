@@ -83,8 +83,8 @@ shadowJar {
 publishing {
     publications {
         mavenJava(MavenPublication) {
-            groupId = 'com.kammoun'
-            artifactId = 'kammoun-api'
+            groupId = 'com.github.MrKammounYT'
+            artifactId = 'KPlugin-Template'
             version = project.version
 
             from components.java
@@ -92,7 +92,7 @@ publishing {
             pom {
                 name = 'Kammoun API'
                 description = 'A comprehensive utility API for Minecraft/Bukkit plugin development'
-                url = 'https://github.com/YOUR_USERNAME/KammounPluginTemplate'
+                url = 'https://github.com/MrKammounYT/KPlugin-Template'
             }
         }
     }
